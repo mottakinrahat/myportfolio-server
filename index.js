@@ -26,15 +26,27 @@ async function run() {
     const skillsCollection = client.db("portfolio").collection("skills");
     const projectsCollection = client.db("portfolio").collection("projects");
     const blogCollection = client.db("portfolio").collection("blog");
+    const userCollection = client.db("portfolio").collection("userData");
 
     app.get("/skills", async (req, res) => {
       const result = await skillsCollection.find().toArray();
       res.send(result);
     });
-    app.get("/projects", async (req, res) => {
-      const result = await projectsCollection.find().toArray();
+    app.post("/userData", async (req, res) => {
+      const user = req.body;
+      const result = await userCollection.insertOne(user);
       res.send(result);
     });
+    app.get("/userData", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+    app.post("/projects", async (req, res) => {
+      const body = req.body;
+      const result = await projectsCollection.insertOne(body);
+      res.send(result);
+    });
+
     app.get("/projects", async (req, res) => {
       const result = await projectsCollection.find().toArray();
       res.send(result);
@@ -52,6 +64,55 @@ async function run() {
         res.send(result);
       } else {
         res.status(404).send("Project not found");
+      }
+    });
+    app.put("/projects/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedProject = req.body;
+
+      // Check if the provided id is a valid ObjectId
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send("Invalid project ID");
+      }
+
+      try {
+        const result = await projectsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedProject }
+        );
+
+        if (result.matchedCount === 1) {
+          res.send({ message: "Project updated successfully", result });
+        } else {
+          res.status(404).send("Project not found");
+        }
+      } catch (error) {
+        console.error("Error updating project:", error);
+        res.status(500).send("Internal Server Error");
+      }
+    });
+
+    app.delete("/projects/:id", async (req, res) => {
+      const id = req.params.id;
+
+      // Check if the provided id is a valid ObjectId
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send("Invalid project ID");
+      }
+
+      try {
+        const result = await projectsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount === 1) {
+          res.send({ message: "Project deleted successfully", result });
+        } else {
+          res.status(404).send("Project not found");
+        }
+      } catch (error) {
+        console.error("Error deleting project:", error);
+        res.status(500).send("Internal Server Error");
       }
     });
 
